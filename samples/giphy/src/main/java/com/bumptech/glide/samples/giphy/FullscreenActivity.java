@@ -8,12 +8,17 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.support.annotation.DrawableRes;
+import android.support.graphics.drawable.VectorDrawableCompat;
+import android.support.v4.graphics.drawable.DrawableCompat;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import com.bumptech.glide.RequestBuilder;
 import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.load.resource.gif.GifDrawable;
+import com.bumptech.glide.load.resource.gif.GifDrawable.AnimationListener;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 import com.google.gson.Gson;
@@ -39,8 +44,9 @@ public class FullscreenActivity extends Activity {
     String resultJson = getIntent().getStringExtra(EXTRA_RESULT_JSON);
     final Api.GifResult result = new Gson().fromJson(resultJson, Api.GifResult.class);
 
-    ImageView gifView = (ImageView) findViewById(R.id.fullscreen_gif);
-
+    ImageView gifView = findViewById(R.id.gif_preview);
+    final ImageView gifPlay = findViewById(R.id.gif_play);
+    gifPlay.setImageDrawable(getTintedVectorAsset(this, R.drawable.ic_gif_watermark));
     gifView.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View view) {
@@ -77,12 +83,38 @@ public class FullscreenActivity extends Activity {
               DataSource dataSource, boolean isFirstResource) {
             if (resource instanceof GifDrawable) {
               gifDrawable = (GifDrawable) resource;
+              gifDrawable.setOnAnimationListener(new AnimationListener() {
+                @Override
+                public void onAnimationStarted() {
+                  Log.d("onAnimation", "Started");
+                  gifPlay.setVisibility(View.GONE);
+                }
+
+                @Override
+                public void onAnimationEnded() {
+                  Log.d("onAnimation", "Stopped");
+                  gifPlay.setVisibility(View.VISIBLE);
+                }
+              });
             } else {
               gifDrawable = null;
             }
             return false;
           }
         })
-        .into(gifView);
+        .into(new GifDrawableImageViewTarget(gifView, 3));
+  }
+
+  /**
+   * @param context           UI context.
+   * @param drawableVectorRes Drawable vector resource.
+   * @return get tintd vector drawable
+   */
+  public static Drawable getTintedVectorAsset(Context context,
+      @DrawableRes int drawableVectorRes) {
+    VectorDrawableCompat nonWhite = VectorDrawableCompat.create(context.getResources(),
+        drawableVectorRes, context.getTheme());
+    Drawable white = DrawableCompat.wrap(nonWhite);
+    return white;
   }
 }

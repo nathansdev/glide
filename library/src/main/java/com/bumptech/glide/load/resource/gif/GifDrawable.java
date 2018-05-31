@@ -75,6 +75,7 @@ public class GifDrawable extends Drawable implements GifFrameLoader.FrameCallbac
   private boolean applyGravity;
   private Paint paint;
   private Rect destRect;
+  private AnimationListener animationListener;
 
   /**
    * Constructor for GifDrawable.
@@ -94,7 +95,6 @@ public class GifDrawable extends Drawable implements GifFrameLoader.FrameCallbac
    * @param gifDecoder          The decoder to use to decode GIF data.
    * @param firstFrame          The decoded and transformed first frame of this GIF.
    * @see #setFrameTransformation(com.bumptech.glide.load.Transformation, android.graphics.Bitmap)
-   *
    * @deprecated Use {@link #GifDrawable(Context, GifDecoder, Transformation, int, int, Bitmap)}
    */
   @SuppressWarnings("deprecation")
@@ -110,7 +110,7 @@ public class GifDrawable extends Drawable implements GifFrameLoader.FrameCallbac
     this(context, gifDecoder, frameTransformation, targetFrameWidth, targetFrameHeight, firstFrame);
   }
 
-   /**
+  /**
    * Constructor for GifDrawable.
    *
    * @param context             A context.
@@ -234,12 +234,18 @@ public class GifDrawable extends Drawable implements GifFrameLoader.FrameCallbac
       isRunning = true;
       state.frameLoader.subscribe(this);
       invalidateSelf();
+      if (animationListener != null) {
+        animationListener.onAnimationStarted();
+      }
     }
   }
 
   private void stopRunning() {
     isRunning = false;
     state.frameLoader.unsubscribe(this);
+    if (animationListener != null) {
+      animationListener.onAnimationEnded();
+    }
   }
 
   @Override
@@ -348,6 +354,7 @@ public class GifDrawable extends Drawable implements GifFrameLoader.FrameCallbac
 
     if (getFrameIndex() == getFrameCount() - 1) {
       loopCount++;
+      //This is the last index of Frame
     }
 
     if (maxLoopCount != LOOP_FOREVER && loopCount >= maxLoopCount) {
@@ -391,8 +398,7 @@ public class GifDrawable extends Drawable implements GifFrameLoader.FrameCallbac
   }
 
   static final class GifState extends ConstantState {
-    @VisibleForTesting
-    final GifFrameLoader frameLoader;
+    @VisibleForTesting final GifFrameLoader frameLoader;
 
     GifState(GifFrameLoader frameLoader) {
       this.frameLoader = frameLoader;
@@ -414,5 +420,15 @@ public class GifDrawable extends Drawable implements GifFrameLoader.FrameCallbac
     public int getChangingConfigurations() {
       return 0;
     }
+  }
+
+  public void setOnAnimationListener(AnimationListener listener) {
+    this.animationListener = listener;
+  }
+
+  public interface AnimationListener {
+    void onAnimationStarted();
+
+    void onAnimationEnded();
   }
 }
